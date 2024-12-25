@@ -18,16 +18,25 @@ package com.klinker.android.messaging_sample;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import com.klinker.android.messaging_sample.R;
 
+import java.util.Arrays;
+
 public class PermissionActivity extends Activity {
+
+    private static final int REQUEST_CODE_ASK_PERMISSIONS_WRITE_SETTINGS = 123;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,16 +51,68 @@ public class PermissionActivity extends Activity {
                 Manifest.permission.READ_PHONE_STATE,
                 Manifest.permission.CHANGE_NETWORK_STATE
         }, 0);
+
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        PreferenceManager.getDefaultSharedPreferences(this).edit()
-                .putBoolean("request_permissions", false)
-                .commit();
+        if (processRequestPermissionsResult(grantResults)) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !android.provider.Settings.System.canWrite(this)) {
+                requestPermissionsManageWriteSettings();
+            } else {
+                PreferenceManager.getDefaultSharedPreferences(this).edit()
+                        .putBoolean("request_permissions", false)
+                        .commit();
+                startActivity(new Intent(this, MainActivity.class));
+                finish();
+            }
+        } else finish();
+    }
 
-        startActivity(new Intent(this, MainActivity.class));
-        finish();
+    private void requestPermissionsManageWriteSettings() {
+        new AlertDialog.Builder(this)
+                .setMessage(com.klinker.android.send_message.R.string.write_settings_permission)
+                .setPositiveButton(com.klinker.android.send_message.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        Intent intent = new Intent(android.provider.Settings.ACTION_MANAGE_WRITE_SETTINGS);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+//                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+                        try {
+                            startActivityForResult(intent, REQUEST_CODE_ASK_PERMISSIONS_WRITE_SETTINGS);
+                        } catch (Exception e) {
+                            Log.e("MainActivity", "error starting permission intent", e);
+                        }
+                    }
+                }).show();
+    }
+
+    private boolean processRequestPermissionsResult(int[] grantResults) {
+        boolean allGranted = true;
+        for (int grantResult : grantResults) {
+            if (grantResult != 0) {
+                allGranted = false;
+                break;
+            }
+        }
+        return allGranted;
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_ASK_PERMISSIONS_WRITE_SETTINGS) {
+            if (android.provider.Settings.System.canWrite(this)) {
+                PreferenceManager.getDefaultSharedPreferences(this).edit()
+                        .putBoolean("request_permissions", false)
+                        .commit();
+                startActivity(new Intent(this, MainActivity.class));
+                finish();
+            } else {
+                finish();
+            }
+        }
     }
 
 }

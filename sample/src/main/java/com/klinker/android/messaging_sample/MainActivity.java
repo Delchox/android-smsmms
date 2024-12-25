@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.graphics.BitmapFactory;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.provider.Telephony;
 import android.support.v7.widget.LinearLayoutManager;
@@ -40,6 +41,7 @@ import com.klinker.android.send_message.Transaction;
 import com.klinker.android.send_message.Utils;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 public class MainActivity extends Activity {
 
@@ -150,6 +152,7 @@ public class MainActivity extends Activity {
     }
 
     private void initLogging() {
+        String path = Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)).getPath();
         Log.setDebug(true);
         Log.setPath("messenger_log.txt");
         Log.setLogListener(new OnLogListener() {

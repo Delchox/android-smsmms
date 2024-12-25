@@ -16,6 +16,7 @@
 
 package com.android.mms.transaction;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.ContentUris;
@@ -26,7 +27,10 @@ import android.content.IntentFilter;
 import android.database.Cursor;
 import android.database.sqlite.SqliteWrapper;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -36,6 +40,7 @@ import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
 import android.preference.PreferenceManager;
+import android.provider.Telephony;
 import android.provider.Telephony.Mms;
 import android.provider.Telephony.MmsSms;
 import android.provider.Telephony.MmsSms.PendingMessages;
@@ -145,8 +150,8 @@ public class TransactionService extends Service implements Observer {
 
     private ServiceHandler mServiceHandler;
     private Looper mServiceLooper;
-    private final ArrayList<Transaction> mProcessing  = new ArrayList<Transaction>();
-    private final ArrayList<Transaction> mPending  = new ArrayList<Transaction>();
+    private final ArrayList<Transaction> mProcessing = new ArrayList<Transaction>();
+    private final ArrayList<Transaction> mPending = new ArrayList<Transaction>();
     private ConnectivityManager mConnMgr;
     private ConnectivityBroadcastReceiver mReceiver;
     private boolean mobileDataEnabled;
@@ -420,11 +425,14 @@ public class TransactionService extends Service implements Observer {
                                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                                     Log.v(TAG, "onNewIntent: falling through and processing");
                                 }
-                               // fall-through
+                                // fall-through
                             default:
-                                Uri uri = ContentUris.withAppendedId(
-                                        Mms.CONTENT_URI,
-                                        cursor.getLong(columnIndexOfMsgId));
+                                Uri uri = null;
+                                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                                    uri = ContentUris.withAppendedId(
+                                            Mms.CONTENT_URI,
+                                            cursor.getLong(columnIndexOfMsgId));
+                                }
                                 TransactionBundle args = new TransactionBundle(
                                         transactionType, uri.toString());
                                 // FIXME: We use the same startId for all MMs.
@@ -569,8 +577,7 @@ public class TransactionService extends Service implements Observer {
                             EVENT_HANDLE_NEXT_PENDING_TRANSACTION,
                             transaction.getConnectionSettings());
                     mServiceHandler.sendMessage(msg);
-                }
-                else if (mProcessing.isEmpty()) {
+                } else if (mProcessing.isEmpty()) {
                     if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                         Log.v(TAG, "update: endMmsConnectivity");
                     }
@@ -641,8 +648,8 @@ public class TransactionService extends Service implements Observer {
     private synchronized void createWakeLock() {
         // Create a new wake lock if we haven't made one yet.
         if (mWakeLock == null) {
-            PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
-            mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "MMS Connectivity");
+            PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            mWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "android-smsmms-lib:MMS Connectivity");
             mWakeLock.setReferenceCounted(false);
         }
     }
@@ -662,7 +669,8 @@ public class TransactionService extends Service implements Observer {
         }
     }
 
-    protected int beginMmsConnectivity() throws IOException {
+    protected int beginMmsConnectivity() {
+        int result = 0;
         if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
             Log.v(TAG, "beginMmsConnectivity");
         }
@@ -676,40 +684,65 @@ public class TransactionService extends Service implements Observer {
                 return 0;
             }
         }
+        // int result = mConnMgr.startUsingNetworkFeature(
+        //         ConnectivityManager.TYPE_MOBILE, "enableMMS");
 
-        int result = mConnMgr.startUsingNetworkFeature(
-                ConnectivityManager.TYPE_MOBILE, "enableMMS");
-
-        if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-            Log.v(TAG, "beginMmsConnectivity: result=" + result);
-        }
-
-        switch (result) {
-            case 0:
-            case 1:
+        NetworkRequest networkRequest = new NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_MMS) // Request MMS capability
+                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR) // Specify cellular transport
+                .build();
+        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            public void onAvailable(Network network) {
+                // Network with MMS capability is available
+                // Perform MMS operations here
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    Log.v(TAG, "beginMmsConnectivity: connectivity success...");
+                }
                 acquireWakeLock();
-                return result;
-        }
+            }
 
-        throw new IOException("Cannot establish MMS connectivity");
+            public void onLost(Network network) {
+                // Network with MMS capability is lost
+                // Handle disconnection or retry logic
+                releaseWakeLock();
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    Log.v(TAG, "beginMmsConnectivity: connectivity failure...");
+                }
+            }
+        };
+
+        mConnMgr.requestNetwork(networkRequest, networkCallback);
+
+        return result;
     }
 
     protected void endMmsConnectivity() {
-        try {
-            if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
-                Log.v(TAG, "endMmsConnectivity");
+        // mConnMgr.stopUsingNetworkFeature(
+        //         ConnectivityManager.TYPE_MOBILE,
+        //         "enableMMS");
+        ConnectivityManager.NetworkCallback networkCallback = new ConnectivityManager.NetworkCallback() {
+            public void onAvailable(Network network) {
+                // Network with MMS capability is available
+                // Perform MMS operations here
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    Log.v(TAG, "beginDisconnectMmsConnectivity: success...");
+                }
+                releaseWakeLock();
             }
 
-            // cancel timer for renewal of lease
-            mServiceHandler.removeMessages(EVENT_CONTINUE_MMS_CONNECTIVITY);
-            if (mConnMgr != null && Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-                mConnMgr.stopUsingNetworkFeature(
-                        ConnectivityManager.TYPE_MOBILE,
-                        "enableMMS");
+            public void onLost(Network network) {
+                // Network with MMS capability is lost
+                // Handle disconnection or retry logic
+                if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
+                    Log.v(TAG, "beginDisconnectMmsConnectivity: failure...");
+                }
             }
-        } finally {
-            releaseWakeLock();
-        }
+        };
+
+        // cancel timer for renewal of lease
+        mServiceHandler.removeMessages(EVENT_CONTINUE_MMS_CONNECTIVITY);
+
+        mConnMgr.unregisterNetworkCallback(networkCallback);
     }
 
     private final class ServiceHandler extends Handler {
@@ -760,7 +793,7 @@ public class TransactionService extends Service implements Observer {
 
             switch (msg.what) {
                 case EVENT_NEW_INTENT:
-                    onNewIntent((Intent)msg.obj, msg.arg1);
+                    onNewIntent((Intent) msg.obj, msg.arg1);
                     break;
 
                 case EVENT_QUIT:
@@ -778,17 +811,12 @@ public class TransactionService extends Service implements Observer {
                         Log.v(TAG, "handle EVENT_CONTINUE_MMS_CONNECTIVITY event...");
                     }
 
-                    try {
-                        int result = beginMmsConnectivity();
-                        if (result != 0) {
-                            Log.v(TAG, "Extending MMS connectivity returned " + result +
-                                    " instead of APN_ALREADY_ACTIVE");
-                            // Just wait for connectivity startup without
-                            // any new request of APN switch.
-                            return;
-                        }
-                    } catch (IOException e) {
-                        Log.w(TAG, "Attempt to extend use of MMS connectivity failed");
+                    int result = beginMmsConnectivity();
+                    if (result != 0) {
+                        Log.v(TAG, "Extending MMS connectivity returned " + result +
+                                " instead of APN_ALREADY_ACTIVE");
+                        // Just wait for connectivity startup without
+                        // any new request of APN switch.
                         return;
                     }
 
@@ -815,7 +843,7 @@ public class TransactionService extends Service implements Observer {
                                     mmsc, args.getProxyAddress(), args.getProxyPort());
                         } else {
                             transactionSettings = new TransactionSettings(
-                                                    TransactionService.this, null);
+                                    TransactionService.this, null);
                         }
 
                         int transactionType = args.getTransactionType();
@@ -933,7 +961,7 @@ public class TransactionService extends Service implements Observer {
                     Transaction transaction = mPending.remove(0);
                     transaction.mTransactionState.setState(TransactionState.FAILED);
                     if (transaction instanceof SendTransaction) {
-                        Uri uri = ((SendTransaction)transaction).mSendReqURI;
+                        Uri uri = ((SendTransaction) transaction).mSendReqURI;
                         transaction.mTransactionState.setContentUri(uri);
                         int respStatus = PduHeaders.RESPONSE_STATUS_ERROR_NETWORK_PROBLEM;
                         ContentValues values = new ContentValues(1);
@@ -949,7 +977,7 @@ public class TransactionService extends Service implements Observer {
         }
 
         public void processPendingTransaction(Transaction transaction,
-                                               TransactionSettings settings) {
+                                              TransactionSettings settings) {
 
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "processPendingTxn: transaction=" + transaction);
@@ -1002,11 +1030,12 @@ public class TransactionService extends Service implements Observer {
 
         /**
          * Internal method to begin processing a transaction.
+         *
          * @param transaction the transaction. Must not be {@code null}.
          * @return {@code true} if process has begun or will begin. {@code false}
          * if the transaction should be discarded.
          * @throws java.io.IOException if connectivity for MMS traffic could not be
-         * established.
+         *                             established.
          */
         private boolean processTransaction(Transaction transaction) throws IOException {
             // Check if transaction already processing
@@ -1030,11 +1059,11 @@ public class TransactionService extends Service implements Observer {
                 }
 
                 /*
-                * Make sure that the network connectivity necessary
-                * for MMS traffic is enabled. If it is not, we need
-                * to defer processing the transaction until
-                * connectivity is established.
-                */
+                 * Make sure that the network connectivity necessary
+                 * for MMS traffic is enabled. If it is not, we need
+                 * to defer processing the transaction until
+                 * connectivity is established.
+                 */
                 if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                     Log.v(TAG, "processTransaction: call beginMmsConnectivity...");
                 }
@@ -1063,12 +1092,12 @@ public class TransactionService extends Service implements Observer {
                         Log.v(TAG, "Adding transaction to 'mProcessing' list: " + transaction);
                     }
                     mProcessing.add(transaction);
-               }
+                }
             }
 
             // Set a timer to keep renewing our "lease" on the MMS connection
             sendMessageDelayed(obtainMessage(EVENT_CONTINUE_MMS_CONNECTIVITY),
-                               APN_EXTENSION_WAIT);
+                    APN_EXTENSION_WAIT);
 
             if (Log.isLoggable(LogTag.TRANSACTION, Log.VERBOSE)) {
                 Log.v(TAG, "processTransaction: starting transaction " + transaction);
@@ -1085,7 +1114,7 @@ public class TransactionService extends Service implements Observer {
         // Set a timer to keep renewing our "lease" on the MMS connection
         mServiceHandler.sendMessageDelayed(
                 mServiceHandler.obtainMessage(EVENT_CONTINUE_MMS_CONNECTIVITY),
-                           APN_EXTENSION_WAIT);
+                APN_EXTENSION_WAIT);
     }
 
     private class ConnectivityBroadcastReceiver extends BroadcastReceiver {
