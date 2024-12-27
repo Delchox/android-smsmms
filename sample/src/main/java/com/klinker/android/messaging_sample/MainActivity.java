@@ -19,6 +19,7 @@ package com.klinker.android.messaging_sample;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -45,6 +46,7 @@ import java.util.Objects;
 
 public class MainActivity extends Activity {
 
+    private final static int REQUEST_CODE_OPEN_DIRECTORY_TREE = 0x12e;
     private Settings settings;
 
     private Button setDefaultAppButton;
@@ -78,6 +80,24 @@ public class MainActivity extends Activity {
         initLogging();
 
         BroadcastUtils.sendExplicitBroadcast(this, new Intent(), "test action");
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_CODE_OPEN_DIRECTORY_TREE) {
+            if (resultCode == RESULT_OK) {
+                if (data != null) {
+                    Uri uri = data.getData();
+                    if (uri != null) {
+                        Uri tempUri = uri.buildUpon()
+                                .appendPath("ApplicationLog.txt")
+                                .build();
+                        processInitLoging(tempUri.getPath());
+                    }
+                }
+            }
+        }
     }
 
     private void initSettings() {
@@ -152,9 +172,19 @@ public class MainActivity extends Activity {
     }
 
     private void initLogging() {
-        String path = Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)).getPath();
-        Log.setDebug(true);
-        Log.setPath("messenger_log.txt");
+        if (Build.VERSION.SDK_INT >= 29) {
+            Log.setDebug(getContentResolver(), true);
+            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+            startActivityForResult(intent, 1);
+        } else {
+            Log.setDebug(null, true);
+            String path = Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)).getPath();
+            processInitLoging(path);
+        }
+    }
+
+    private void processInitLoging(String path) {
+        Log.setPath(path);
         Log.setLogListener(new OnLogListener() {
             @Override
             public void onLogged(String tag, String message) {

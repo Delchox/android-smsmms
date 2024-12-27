@@ -398,7 +398,7 @@ public class Settings {
      * @param path the external path on the sd card to write the log to
      */
     public static void setDebugLogging(boolean debugLogging, String path) {
-        Log.setDebug(debugLogging);
+        Log.setDebug(null, debugLogging);
         Log.setPath(path);
     }
 }
