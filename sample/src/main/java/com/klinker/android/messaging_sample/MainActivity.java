@@ -24,6 +24,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
+import android.provider.DocumentsContract;
 import android.provider.Telephony;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -90,10 +91,9 @@ public class MainActivity extends Activity {
                 if (data != null) {
                     Uri uri = data.getData();
                     if (uri != null) {
-                        Uri tempUri = uri.buildUpon()
-                                .appendPath("ApplicationLog.txt")
-                                .build();
-                        processInitLoging(tempUri.getPath());
+                        String documentTreeUriId = DocumentsContract.getTreeDocumentId(uri);
+                        String documentTreeStrUri = DocumentsContract.buildDocumentUriUsingTree(uri, documentTreeUriId).toString();
+                        processInitLogging(documentTreeStrUri);
                     }
                 }
             }
@@ -175,15 +175,15 @@ public class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 29) {
             Log.setDebug(getContentResolver(), true);
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-            startActivityForResult(intent, 1);
+            startActivityForResult(intent, REQUEST_CODE_OPEN_DIRECTORY_TREE);
         } else {
             Log.setDebug(null, true);
             String path = Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)).getPath();
-            processInitLoging(path);
+            processInitLogging(path);
         }
     }
 
-    private void processInitLoging(String path) {
+    private void processInitLogging(String path) {
         Log.setPath(path);
         Log.setLogListener(new OnLogListener() {
             @Override

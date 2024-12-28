@@ -1,18 +1,18 @@
 apply plugin: 'com.android.library'
 
 dependencies {
-    implementation 'com.klinkerapps:logger:1.0.3'
     implementation 'com.squareup.okhttp:okhttp:2.5.0'
     implementation 'com.squareup.okhttp:okhttp-urlconnection:2.5.0'
     implementation 'org.jetbrains:annotations:15.0'
 }
 
 android {
-    compileSdkVersion 34
+
+    compileSdk 25
 
     defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 34
+        minSdk 14
+        targetSdk 14
     }
 
     lintOptions {

@@ -17,12 +17,12 @@
 package com.klinker.android.logger;
 
 import android.content.ContentResolver;
-import android.content.ContentValues;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.os.ParcelFileDescriptor;
+
+import com.microspacegames.app.utils.UriHelper;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,8 +49,9 @@ public class Log {
     private static final String TAG = "Log";
 
     private static boolean DEBUG_ENABLED = false;
-    private static String PATH = "ApplicationLog.txt";
-    private static Uri URI = null;
+    private static final String FILE_NAME = "ApplicationLog.txt";
+    private static String PATH;
+    private static Uri FILE_URI;
     private static OnLogListener logListener;
     private static ContentResolver CONTENT_RESOLVER;
 
@@ -60,17 +61,18 @@ public class Log {
     }
 
     public static void setPath(@NotNull String path) {
-        if (path.endsWith("/")) {
-            PATH = path + "ApplicationLog.txt";
-        } else if (!path.endsWith(".txt")) {
-            PATH = path + ".txt";
+        if (Build.VERSION.SDK_INT >= 29) {
+            if (UriHelper.isTreeUri(path)) {
+                PATH = path;
+            }
         } else {
-            PATH = path;
-        }
-
-        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.Q) {
-            Uri.Builder builder = new Uri.Builder();
-            URI = builder.path(PATH).build();
+            if (path.endsWith("/")) {
+                PATH = path + FILE_NAME;
+            } else if (!path.endsWith(".txt")) {
+                PATH = path + ".txt";
+            } else {
+                PATH = path;
+            }
         }
     }
 
@@ -167,36 +169,16 @@ public class Log {
         return (DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.SHORT, Locale.US).format(dateNow));
     }
 
-    private static boolean isFileExists(ContentResolver contentResolver, Uri uri) {
-        Cursor cursor = contentResolver.query(uri, null, null, null, null);
-        boolean exists = cursor != null && cursor.moveToFirst();
-        if (cursor != null)
-            cursor.close();
-        return exists;
-    }
-
     private static void logToFile(String tag, String message) {
         if (Build.VERSION.SDK_INT >= 29) {
             if (CONTENT_RESOLVER != null) {
                 ParcelFileDescriptor parcelFileDescriptor;
                 try {
-                    if (!isFileExists(CONTENT_RESOLVER, URI)) {
-                        ContentValues contentValues = new ContentValues();
-                        int indexSlash = PATH.lastIndexOf("/");
-                        if (indexSlash > 0) {
-                            String name = PATH.substring(indexSlash + 1);
-                            contentValues.put(
-                                    android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
-                                    name
-                            );
-                            contentValues.put(
-                                    android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE, "text/plain"
-                            );
-                            CONTENT_RESOLVER.insert(URI, contentValues);
-                        }
-
-
-                        parcelFileDescriptor = CONTENT_RESOLVER.openFileDescriptor(URI, "w");
+                    if (FILE_URI == null) {
+                        FILE_URI = UriHelper.findFileTreeUri(CONTENT_RESOLVER, PATH, FILE_NAME);
+                    }
+                    if (FILE_URI != null) {
+                        parcelFileDescriptor = CONTENT_RESOLVER.openFileDescriptor(FILE_URI, "wa");
                         if (parcelFileDescriptor != null) {
                             FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
                             BufferedWriter writer = new BufferedWriter(new FileWriter(fileDescriptor));
@@ -209,7 +191,7 @@ public class Log {
                     android.util.Log.e(TAG, "Unable to log exception to file.", e);
                 }
             } else {
-                android.util.Log.e(TAG, "Unable to log exception to file. Context is null.");
+                android.util.Log.e(TAG, "Unable to log exception to file. ContentResolver is null.");
             }
         } else {
             try {
