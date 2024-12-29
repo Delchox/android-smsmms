@@ -830,7 +830,8 @@ public class PduPersister {
                 }
                 String dataText = new EncodedStringValue(data).getString();
                 cv.put(Part.TEXT, dataText);
-                if (mContentResolver.update(uri, cv, null, null) != 1) {
+                int countRows = mContentResolver.update(uri, cv, null, null);
+                if (countRows != 1) {
                     if (data.length > MAX_TEXT_BODY_SIZE) {
                         ContentValues cv2 = new ContentValues();
                         cv2.put(Part.TEXT, cutString(dataText, MAX_TEXT_BODY_SIZE));

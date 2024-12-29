@@ -176,6 +176,8 @@ public class Log {
                 try {
                     if (FILE_URI == null) {
                         FILE_URI = UriHelper.findFileTreeUri(CONTENT_RESOLVER, PATH, FILE_NAME);
+                        if (FILE_URI == null)
+                            FILE_URI = UriHelper.createEmptyFile(CONTENT_RESOLVER, PATH, FILE_NAME);
                     }
                     if (FILE_URI != null) {
                         parcelFileDescriptor = CONTENT_RESOLVER.openFileDescriptor(FILE_URI, "wa");

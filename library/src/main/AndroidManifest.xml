@@ -2,15 +2,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+
     <application>
 
-        <provider android:name=".MmsFileProvider"
-                  android:authorities="${applicationId}.MmsFileProvider"
-                  android:enabled="true"
-                  android:grantUriPermissions="true"
-                  android:exported="false" />
+        <provider
+            android:name="com.klinker.android.send_message.MmsFileProvider"
+            android:authorities="com.klinker.android.send_message.sample.MmsFileProvider"
+            android:enabled="true"
+            android:exported="true"
+            android:grantUriPermissions="true" />
 
-        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
 
     </application>
 </manifest>

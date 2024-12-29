@@ -12,7 +12,7 @@ android {
 
     defaultConfig {
         minSdk 14
-        targetSdk 14
+        targetSdk 25
     }
 
     lintOptions {
