@@ -10,7 +10,7 @@
             android:name="com.klinker.android.send_message.MmsFileProvider"
             android:authorities="com.klinker.android.send_message.sample.MmsFileProvider"
             android:enabled="true"
-            android:exported="true"
+            android:exported="false"
             android:grantUriPermissions="true" />
 
         <uses-library
