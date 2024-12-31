@@ -16,8 +16,10 @@
 
 package com.klinker.android.messaging_sample;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
@@ -83,6 +85,7 @@ public class MainActivity extends Activity {
         BroadcastUtils.sendExplicitBroadcast(this, new Intent(), "test action");
     }
 
+    @SuppressLint("WrongConstant")
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -94,6 +97,10 @@ public class MainActivity extends Activity {
                         String documentTreeUriId = DocumentsContract.getTreeDocumentId(uri);
                         String documentTreeStrUri = DocumentsContract.buildDocumentUriUsingTree(uri, documentTreeUriId).toString();
                         processInitLogging(documentTreeStrUri);
+                        int flags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        getContentResolver().takePersistableUriPermission(uri, flags);
+                        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+                        sharedPreferences.edit().putBoolean("grand_uri_permissions", true).apply();
                     }
                 }
             }
@@ -174,8 +181,12 @@ public class MainActivity extends Activity {
     private void initLogging() {
         if (Build.VERSION.SDK_INT >= 29) {
             Log.setDebug(getContentResolver(), true);
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-            startActivityForResult(intent, REQUEST_CODE_OPEN_DIRECTORY_TREE);
+            // SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+            // boolean requestPermissions = sharedPreferences.getBoolean("grand_uri_permissions", false);
+            // if (!requestPermissions) {
+                Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                startActivityForResult(intent, REQUEST_CODE_OPEN_DIRECTORY_TREE);
+            // }
         } else {
             Log.setDebug(null, true);
             String path = Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)).getPath();
