@@ -16,6 +16,7 @@
 
 package com.klinker.android.send_message;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.PendingIntent;
 import android.content.*;
@@ -521,6 +522,7 @@ public class Transaction {
         }
     }
 
+    @SuppressLint("Range")
     public static MessageInfo getBytes(Context context, boolean saveMessage, String fromAddress,
                                        String[] recipients, MMSPart[] parts, String subject)
                 throws MmsException {
@@ -682,7 +684,7 @@ public class Transaction {
             intent.putExtra(MmsSentReceiver.EXTRA_CONTENT_URI, messageUri.toString());
             intent.putExtra(MmsSentReceiver.EXTRA_FILE_PATH, mSendFile.getPath());
             final PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                    context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT);
+                    context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
             Uri writerUri = (new Uri.Builder())
                     .authority(context.getPackageName() + ".MmsFileProvider")

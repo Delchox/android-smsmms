@@ -8,15 +8,17 @@ dependencies {
 
 android {
 
-    compileSdk 25
+    compileSdk 34
 
     defaultConfig {
-        minSdk 14
-        targetSdk 25
+        minSdk 29
+        targetSdk 34
     }
 
     lintOptions {
         abortOnError false
+//        warningsAsErrors true
+        showAll true
     }
 
     useLibrary 'org.apache.http.legacy'

@@ -322,7 +322,7 @@ public class UriHelper {
         return success;
     }
 
-    public static Uri createEmptyFile(ContentResolver contentResolver, Uri parentDirectoryUri, String fileName) {
+    public static Uri createEmptyFile(ContentResolver contentResolver, Uri parentDirectoryUri, String fileName) throws FileNotFoundException {
         return DocumentsContract.createDocument(
                 contentResolver,
                 parentDirectoryUri,
@@ -331,15 +331,15 @@ public class UriHelper {
         );
     }
 
-    public static Uri createEmptyFile(ContentResolver contentResolver, String parentDirectoryStrUri, String fileName) {
+    public static Uri createEmptyFile(ContentResolver contentResolver, String parentDirectoryStrUri, String fileName) throws FileNotFoundException {
         return createEmptyFile(contentResolver, Uri.parse(parentDirectoryStrUri), fileName);
     }
 
-    public static void deleteFileUri(ContentResolver contentResolver, Uri fileUri) {
+    public static void deleteFileUri(ContentResolver contentResolver, Uri fileUri) throws FileNotFoundException {
         DocumentsContract.deleteDocument(contentResolver, fileUri);
     }
 
-    public static void deleteFileUri(ContentResolver contentResolver, String fileStrUri) {
+    public static void deleteFileUri(ContentResolver contentResolver, String fileStrUri) throws FileNotFoundException {
         deleteFileUri(contentResolver, Uri.parse(fileStrUri));
     }
 

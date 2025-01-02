@@ -17,11 +17,11 @@
 package com.google.android.mms.pdu_alt;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.UriMatcher;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -52,9 +52,6 @@ import com.google.android.mms.util_alt.PduCacheEntry;
 import com.google.android.mms.util_alt.SqliteWrapper;
 import com.klinker.android.logger.Log;
 import com.klinker.android.send_message.Settings;
-import com.microspacegames.app.utils.UriHelper;
-
-import org.apache.http.client.utils.URIUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -297,9 +294,7 @@ public class PduPersister {
                 .getSystemService(Context.TELEPHONY_SERVICE);
     }
 
-    /**
-     * Get(or create if not exist) an instance of PduPersister
-     */
+    /** Get(or create if not exist) an instance of PduPersister */
     public static PduPersister getPduPersister(Context context) {
         if ((sPersister == null)) {
             sPersister = new PduPersister(context);
@@ -762,54 +757,17 @@ public class PduPersister {
             values.put(Part.CONTENT_LOCATION, (String) value);
         }
 
-        Uri res = null;
-        // Uri res = SqliteWrapper.insert(mContext, mContentResolver, uri, values);
-        // if (res == null) {
-        //     throw new MmsException("Failed to persist part, return null.");
-        // }
-        getDataUriMMs(mContentResolver, uri);
-        // persistData(part, res, contentType, preOpenedFiles);
+        Uri res = SqliteWrapper.insert(mContext, mContentResolver, uri, values);
+        if (res == null) {
+            throw new MmsException("Failed to persist part, return null.");
+        }
+
+        persistData(part, res, contentType, preOpenedFiles);
         // After successfully store the data, we should update
         // the dataUri of the part.
         part.setDataUri(res);
 
         return res;
-    }
-
-    private void getDataUriMMs(ContentResolver contentResolver, Uri uri) {?
-        Uri tmpUri = Mms.Outbox.CONTENT_URI;
-        String[] projection = {
-                // Telephony.Mms.Part.CONTENT_TYPE,
-                Mms.Outbox.MESSAGE_ID,
-                // ... other columns you need
-        };
-        Cursor cursor = null;
-        try {
-            cursor = contentResolver.query(tmpUri, projection, null, null, null);
-            if (null == cursor) {
-                Log.e(TAG, "Cursor is null");
-            } else if (cursor.getCount() < 0) {
-                Log.e(TAG, "Cursor count is less than 0");
-            } else {
-                if (cursor.moveToFirst()) {
-                    do {
-                        // long partId = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Mms.Part._ID));
-                        // String contentType = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Mms.Part.CONTENT_TYPE));
-                        // String dataType = cursor.getString(cursor.getColumnIndexOrThrow(Mms.CONTENT_TYPE));
-                        // Log.d(TAG, "dataType: " + dataType);
-                        String textOnly = cursor.getString(cursor.getColumnIndexOrThrow(Mms.MESSAGE_ID));
-                        Log.d(TAG, "textOnly: " + textOnly);
-
-                    } while (cursor.moveToNext());
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Exception reading mms ...");
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
     }
 
     private static String cutString(String src, int expectSize) {
@@ -846,12 +804,12 @@ public class PduPersister {
      * save it. If the data is an image, we may scale down it according
      * to user preference.
      *
-     * @param part           The PDU part which contains data to be saved.
-     * @param uri            The URI of the part.
-     * @param contentType    The MIME type of the part.
+     * @param part The PDU part which contains data to be saved.
+     * @param uri The URI of the part.
+     * @param contentType The MIME type of the part.
      * @param preOpenedFiles if not null, a map of preopened InputStreams for the parts.
      * @throws MmsException Cannot find source data or error occurred
-     *                      while saving the data.
+     *         while saving the data.
      */
     private void persistData(PduPart part, Uri uri,
                              String contentType, HashMap<Uri, InputStream> preOpenedFiles)
@@ -873,8 +831,7 @@ public class PduPersister {
                 }
                 String dataText = new EncodedStringValue(data).getString();
                 cv.put(Part.TEXT, dataText);
-                int countRows = mContentResolver.update(uri, cv, null, null);
-                if (countRows != 1) {
+                if (mContentResolver.update(uri, cv, null, null) != 1) {
                     if (data.length > MAX_TEXT_BODY_SIZE) {
                         ContentValues cv2 = new ContentValues();
                         cv2.put(Part.TEXT, cutString(dataText, MAX_TEXT_BODY_SIZE));
@@ -1004,10 +961,10 @@ public class PduPersister {
 
     /**
      * This method expects uri in the following format
-     * content://media/<table_name>/<row_index> (or)
-     * file://sdcard/test.mp4
-     * http://test.com/test.mp4
-     * <p>
+     *     content://media/<table_name>/<row_index> (or)
+     *     file://sdcard/test.mp4
+     *     http://test.com/test.mp4
+     *
      * Here <table_name> shall be "video" or "audio" or "images"
      * <row_index> the index of the content in given table
      */
@@ -1062,7 +1019,7 @@ public class PduPersister {
     /**
      * Update headers of a SendReq.
      *
-     * @param uri     The PDU which need to be updated.
+     * @param uri The PDU which need to be updated.
      * @param sendReq New headers.
      * @throws MmsException Bad URI or updating failed.
      */
@@ -1228,8 +1185,8 @@ public class PduPersister {
     /**
      * Update all parts of a PDU.
      *
-     * @param uri            The PDU which need to be updated.
-     * @param body           New message body of the PDU.
+     * @param uri The PDU which need to be updated.
+     * @param body New message body of the PDU.
      * @param preOpenedFiles if not null, a map of preopened InputStreams for the parts.
      * @throws MmsException Bad URI or updating failed.
      */
@@ -1314,13 +1271,13 @@ public class PduPersister {
     /**
      * Persist a PDU object to specific location in the storage.
      *
-     * @param pdu             The PDU object to be stored.
-     * @param uri             Where to store the given PDU object.
-     * @param createThreadId  if true, this function may create a thread id for the recipients
+     * @param pdu The PDU object to be stored.
+     * @param uri Where to store the given PDU object.
+     * @param createThreadId if true, this function may create a thread id for the recipients
      * @param groupMmsEnabled if true, all of the recipients addressed in the PDU will be used
-     *                        to create the associated thread. When false, only the sender will be used in finding or
-     *                        creating the appropriate thread or conversation.
-     * @param preOpenedFiles  if not null, a map of preopened InputStreams for the parts.
+     *  to create the associated thread. When false, only the sender will be used in finding or
+     *  creating the appropriate thread or conversation.
+     * @param preOpenedFiles if not null, a map of preopened InputStreams for the parts.
      * @return A Uri which can be used to access the stored PDU.
      */
 
@@ -1554,9 +1511,9 @@ public class PduPersister {
     /**
      * For a given address type, extract the recipients from the headers.
      *
-     * @param addressType     can be PduHeaders.FROM, PduHeaders.TO or PduHeaders.CC
-     * @param recipients      a HashSet that is loaded with the recipients from the FROM, TO or CC headers
-     * @param addressMap      a HashMap of the addresses from the ADDRESS_FIELDS header
+     * @param addressType can be PduHeaders.FROM, PduHeaders.TO or PduHeaders.CC
+     * @param recipients a HashSet that is loaded with the recipients from the FROM, TO or CC headers
+     * @param addressMap a HashMap of the addresses from the ADDRESS_FIELDS header
      * @param excludeMyNumber if true, the number of this phone will be excluded from recipients
      */
     private void loadRecipients(int addressType, HashSet<String> recipients,
@@ -1573,7 +1530,20 @@ public class PduPersister {
             return;
         }
 
+//        if (checkSelfPermission(Manifest.permission.READ_SMS) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.READ_PHONE_NUMBERS) != PackageManager.PERMISSION_GRANTED && checkSelfPermission(Manifest.permission.READ_PHONE_STATE) != PackageManager.PERMISSION_GRANTED) {
+//            // TODO: Consider calling
+//            //    Activity#requestPermissions
+//            // here to request the missing permissions, and then overriding
+//            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+//            //                                          int[] grantResults)
+//            // to handle the case where the user grants the permission. See the documentation
+//            // for Activity#requestPermissions for more details.
+//            return;
+//        }
+
+        @SuppressLint("HardwareIds")
         String myNumber = excludeMyNumber ? mTelephonyManager.getLine1Number() : null;
+
         for (EncodedStringValue v : array) {
             if (v != null) {
                 String number = v.getString();
@@ -1590,10 +1560,10 @@ public class PduPersister {
      * Move a PDU object from one location to another.
      *
      * @param from Specify the PDU object to be moved.
-     * @param to   The destination location, should be one of the following:
-     *             "content://mms/inbox", "content://mms/sent",
-     *             "content://mms/drafts", "content://mms/outbox",
-     *             "content://mms/trash".
+     * @param to The destination location, should be one of the following:
+     *        "content://mms/inbox", "content://mms/sent",
+     *        "content://mms/drafts", "content://mms/outbox",
+     *        "content://mms/trash".
      * @return New Uri of the moved PDU.
      * @throws MmsException Error occurred while moving the message.
      */
@@ -1609,9 +1579,9 @@ public class PduPersister {
         if (msgBox == null) {
             throw new MmsException(
                     "Bad destination, must be one of "
-                            + "content://mms/inbox, content://mms/sent, "
-                            + "content://mms/drafts, content://mms/outbox, "
-                            + "content://mms/temp.");
+                    + "content://mms/inbox, content://mms/sent, "
+                    + "content://mms/drafts, content://mms/outbox, "
+                    + "content://mms/temp.");
         }
 
         ContentValues values = new ContentValues(1);
@@ -1659,8 +1629,8 @@ public class PduPersister {
      */
     public Cursor getPendingMessages(long dueTime) {
         if (!checkReadSmsPermissions()) {
-            Log.w(TAG, "No read sms permissions have been granted");
-            return null;
+          Log.w(TAG, "No read sms permissions have been granted");
+          return null;
         }
         Uri.Builder uriBuilder = PendingMessages.CONTENT_URI.buildUpon();
         uriBuilder.appendQueryParameter("protocol", "mms");
@@ -1668,7 +1638,7 @@ public class PduPersister {
         String selection = PendingMessages.ERROR_TYPE + " < ?"
                 + " AND " + PendingMessages.DUE_TIME + " <= ?";
 
-        String[] selectionArgs = new String[]{
+        String[] selectionArgs = new String[] {
                 String.valueOf(MmsSms.ERR_TYPE_GENERIC_PERMANENT),
                 String.valueOf(dueTime)
         };

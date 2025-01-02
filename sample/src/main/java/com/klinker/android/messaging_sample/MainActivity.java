@@ -45,6 +45,7 @@ import com.klinker.android.send_message.Transaction;
 import com.klinker.android.send_message.Utils;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class MainActivity extends Activity {
@@ -100,7 +101,7 @@ public class MainActivity extends Activity {
                         int flags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                         getContentResolver().takePersistableUriPermission(uri, flags);
                         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-                        sharedPreferences.edit().putBoolean("grand_uri_permissions", true).apply();
+                        sharedPreferences.edit().putString("grand_uri_permissions", documentTreeStrUri).apply();
                     }
                 }
             }
@@ -179,14 +180,17 @@ public class MainActivity extends Activity {
     }
 
     private void initLogging() {
+
         if (Build.VERSION.SDK_INT >= 29) {
             Log.setDebug(getContentResolver(), true);
-            // SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-            // boolean requestPermissions = sharedPreferences.getBoolean("grand_uri_permissions", false);
-            // if (!requestPermissions) {
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+            String requestPermissions = sharedPreferences.getString("grand_uri_permissions", "");
+            if (requestPermissions.equals("")) {
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                 startActivityForResult(intent, REQUEST_CODE_OPEN_DIRECTORY_TREE);
-            // }
+            } else {
+                processInitLogging(requestPermissions);
+            }
         } else {
             Log.setDebug(null, true);
             String path = Objects.requireNonNull(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS)).getPath();
@@ -195,6 +199,22 @@ public class MainActivity extends Activity {
     }
 
     private void processInitLogging(String path) {
+//        List<MmsHelper.MmsMessage> mmsMessages = MmsHelper.getAllMmsMessages(getApplicationContext());
+//
+//        for (MmsHelper.MmsMessage message : mmsMessages) {
+//            System.out.println("MMS ID: " + message.getId());
+//            System.out.println("Thread ID: " + message.getThreadId());
+//            for (MmsHelper.MmsPart part : message.getParts()) {
+//                System.out.println("  Part ID: " + part.getId());
+//                System.out.println("  Content Type: " + part.getContentType());
+//                if (part.getData() instanceof String) {
+//                    System.out.println("  Text Data: " + part.getData());
+//                } else if (part.getData() instanceof byte[]) {
+//                    System.out.println("  Binary Data Length: " + ((byte[]) part.getData()).length);
+//                }
+//            }
+//        }
+
         Log.setPath(path);
         Log.setLogListener(new OnLogListener() {
             @Override
