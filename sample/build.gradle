@@ -11,11 +11,15 @@ allprojects {
 
 android {
 
-    compileSdk 29
+    //noinspection GradleDependency
+    compileSdk 30
 
     defaultConfig {
         applicationId "com.klinker.android.send_message.sample"
         minSdk 29
+
+        //noinspection EditedTargetSdkVersion,ExpiredTargetSdkVersion
+        targetSdk 30
         versionCode 1
         versionName "1.0"
     }

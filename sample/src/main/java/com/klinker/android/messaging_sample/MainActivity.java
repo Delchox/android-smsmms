@@ -18,6 +18,8 @@ package com.klinker.android.messaging_sample;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.role.RoleManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
@@ -27,7 +29,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.preference.PreferenceManager;
 import android.provider.DocumentsContract;
-import android.provider.Telephony;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
@@ -50,6 +51,8 @@ import java.util.Objects;
 public class MainActivity extends Activity {
 
     private final static int REQUEST_CODE_OPEN_DIRECTORY_TREE = 0x12e;
+    private final static int REQUEST_CODE_SMS_ROLE = 0x12f;
+
     private Settings settings;
 
     private Button setDefaultAppButton;
@@ -143,7 +146,15 @@ public class MainActivity extends Activity {
             setDefaultAppButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    setDefaultSmsApp();
+                    RoleManager roleManager = (RoleManager) getSystemService(Context.ROLE_SERVICE);
+                    boolean isSmsRoleAvailable = roleManager.isRoleAvailable(RoleManager.ROLE_SMS);
+
+                    if (isSmsRoleAvailable) {
+                        boolean isSmsRoleHeld = roleManager.isRoleHeld(RoleManager.ROLE_SMS);
+                        if (!isSmsRoleHeld) {
+                            setDefaultSmsApp();
+                        }
+                    }
                 }
             });
         }
@@ -206,11 +217,9 @@ public class MainActivity extends Activity {
 
     private void setDefaultSmsApp() {
         setDefaultAppButton.setVisibility(View.GONE);
-        Intent intent =
-                new Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT);
-        intent.putExtra(Telephony.Sms.Intents.EXTRA_PACKAGE_NAME,
-                getPackageName());
-        startActivity(intent);
+        RoleManager roleManager = (RoleManager) getSystemService(Context.ROLE_SERVICE);
+        Intent intent = roleManager.createRequestRoleIntent(RoleManager.ROLE_SMS);
+        startActivityForResult(intent, REQUEST_CODE_SMS_ROLE);
     }
 
     private void toggleSendImage() {

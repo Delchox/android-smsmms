@@ -17,12 +17,12 @@
 package com.klinker.android.send_message;
 
 import android.app.Activity;
-import android.content.BroadcastReceiver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+
 import com.klinker.android.logger.Log;
 
 import java.util.Calendar;

@@ -138,7 +138,7 @@ public class Transaction {
         //
         // then, send as MMS, else send as Voice or SMS
         if (checkMMS(message)) {
-            try { Looper.prepare(); } catch (Exception e) { }
+            try { Looper.prepare(); } catch (Exception ignored) { }
             RateController.init(context);
             DownloadManager.init(context);
 
@@ -361,8 +361,9 @@ public class Transaction {
                             } catch (Exception f) { }
                         }
                     } else {
+                        Log.i(TAG + ".java - line 364", "mocked sending message\n// smsManager.sendMultipartTextMessage(address, null, parts, sPI, dPI);");
                         // not default app, so just fire it off right away for the hell of it
-                        smsManager.sendMultipartTextMessage(addresses[i], null, parts, sPI, dPI);
+                        // smsManager.sendMultipartTextMessage(addresses[i], null, parts, sPI, dPI);
                     }
                 }
             }
@@ -382,7 +383,8 @@ public class Transaction {
                 if (checkIfMessageExistsAfterDelay(messageUri)) {
                     Log.v("send_transaction", "message sent after delay");
                     try {
-                        smsManager.sendMultipartTextMessage(address, null, parts, sPI, dPI);
+                        Log.i(TAG + ".java - line 385", "mocked sending message\n// smsManager.sendMultipartTextMessage(address, null, parts, sPI, dPI);");
+                        // smsManager.sendMultipartTextMessage(address, null, parts, sPI, dPI);
                     } catch (Exception e) {
                         Log.e(TAG, "exception thrown", e);
                     }
@@ -716,6 +718,7 @@ public class Transaction {
 
             if (contentUri != null) {
                 Log.v(TAG, "sending mms through system");
+                Log.i(TAG + ".java - line 721", "mocked sending message\n// smsManager.sendMultimediaMessage(context, contentUri, null, configOverrides, pendingIntent);");
                 // SmsManagerFactory.createSmsManager(settings).sendMultimediaMessage(context,
                 //         contentUri, null, configOverrides, pendingIntent);
             } else {

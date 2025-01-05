@@ -21,7 +21,6 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.UriMatcher;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.DatabaseUtils;
@@ -52,9 +51,6 @@ import com.google.android.mms.util_alt.PduCacheEntry;
 import com.google.android.mms.util_alt.SqliteWrapper;
 import com.klinker.android.logger.Log;
 import com.klinker.android.send_message.Settings;
-import com.microspacegames.app.utils.UriHelper;
-
-import org.apache.http.client.utils.URIUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -762,54 +758,17 @@ public class PduPersister {
             values.put(Part.CONTENT_LOCATION, (String) value);
         }
 
-        Uri res = null;
-        // Uri res = SqliteWrapper.insert(mContext, mContentResolver, uri, values);
-        // if (res == null) {
-        //     throw new MmsException("Failed to persist part, return null.");
-        // }
-        getDataUriMMs(mContentResolver, uri);
-        // persistData(part, res, contentType, preOpenedFiles);
+        Uri res = SqliteWrapper.insert(mContext, mContentResolver, uri, values);
+        if (res == null) {
+            throw new MmsException("Failed to persist part, return null.");
+        }
+
+        persistData(part, res, contentType, preOpenedFiles);
         // After successfully store the data, we should update
         // the dataUri of the part.
         part.setDataUri(res);
 
         return res;
-    }
-
-    private void getDataUriMMs(ContentResolver contentResolver, Uri uri) {?
-        Uri tmpUri = Mms.Outbox.CONTENT_URI;
-        String[] projection = {
-                // Telephony.Mms.Part.CONTENT_TYPE,
-                Mms.Outbox.MESSAGE_ID,
-                // ... other columns you need
-        };
-        Cursor cursor = null;
-        try {
-            cursor = contentResolver.query(tmpUri, projection, null, null, null);
-            if (null == cursor) {
-                Log.e(TAG, "Cursor is null");
-            } else if (cursor.getCount() < 0) {
-                Log.e(TAG, "Cursor count is less than 0");
-            } else {
-                if (cursor.moveToFirst()) {
-                    do {
-                        // long partId = cursor.getLong(cursor.getColumnIndexOrThrow(Telephony.Mms.Part._ID));
-                        // String contentType = cursor.getString(cursor.getColumnIndexOrThrow(Telephony.Mms.Part.CONTENT_TYPE));
-                        // String dataType = cursor.getString(cursor.getColumnIndexOrThrow(Mms.CONTENT_TYPE));
-                        // Log.d(TAG, "dataType: " + dataType);
-                        String textOnly = cursor.getString(cursor.getColumnIndexOrThrow(Mms.MESSAGE_ID));
-                        Log.d(TAG, "textOnly: " + textOnly);
-
-                    } while (cursor.moveToNext());
-                }
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Exception reading mms ...");
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
     }
 
     private static String cutString(String src, int expectSize) {
