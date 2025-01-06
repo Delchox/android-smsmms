@@ -5,6 +5,13 @@ import android.telephony.SmsManager;
 
 public class SmsManagerFactory {
 
+    // val smsManager = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+    //     @Suppress("DEPRECATION")
+    //             SmsManager.getDefault()
+    // } else {
+    //     context.getSystemService(SmsManager::class.java)
+    // }
+
     public static SmsManager createSmsManager(Settings settings) {
         return createSmsManager(settings.getSubscriptionId());
     }
@@ -15,7 +22,11 @@ public class SmsManagerFactory {
             SmsManager manager = null;
 
             try {
-                manager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId);
+                if (Build.VERSION.SDK_INT >= 31) {
+                    Context.getSystemService(SmsManager.class).createForSubscriptionId(subscriptionId);
+                } else {
+                    manager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
