@@ -38,7 +38,9 @@ import com.android.mms.service_alt.MmsRequestManager;
 import com.android.mms.service_alt.SendRequest;
 import com.google.android.mms.util_alt.SqliteWrapper;
 import com.klinker.android.logger.Log;
+
 import android.widget.Toast;
+
 import com.android.mms.dom.smil.parser.SmilXmlSerializer;
 import com.android.mms.transaction.MmsMessageSender;
 import com.android.mms.transaction.ProgressCallbackEntity;
@@ -118,10 +120,10 @@ public class Transaction {
      * Called to send a new message depending on settings and provided Message object
      * If you want to send message as mms, call this from the UI thread
      *
-     * @param message  is the message that you want to send
-     * @param threadId is the thread id of who to send the message to (can also be set to Transaction.NO_THREAD_ID)
+     * @param message               is the message that you want to send
+     * @param threadId              is the thread id of who to send the message to (can also be set to Transaction.NO_THREAD_ID)
      * @param sentMessageParcelable is the piece of data that will be retrieved when BroadcastReceiver is called for sent message
-     * @param deliveredParcelable is the piece of data that will be retrieved when BroadcastReceiver is called for delivered message
+     * @param deliveredParcelable   is the piece of data that will be retrieved when BroadcastReceiver is called for delivered message
      */
     public void sendNewMessage(Message message, long threadId,
                                Parcelable sentMessageParcelable, Parcelable deliveredParcelable) {
@@ -139,14 +141,17 @@ public class Transaction {
         //
         // then, send as MMS, else send as Voice or SMS
         if (checkMMS(message)) {
-            try { Looper.prepare(); } catch (Exception ignored) { }
+            try {
+                Looper.prepare();
+            } catch (Exception ignored) {
+            }
             RateController.init(context);
             DownloadManager.init(context);
 
             if (!settings.getGroup()) {
                 // send individual MMS to each person in the group of addresses
                 for (String address : message.getAddresses()) {
-                    sendMmsMessage(message.getText(), message.getFromAddress(), new String[] { address },
+                    sendMmsMessage(message.getText(), message.getFromAddress(), new String[]{address},
                             message.getImages(), message.getImageNames(), message.getParts(), message.getSubject(),
                             message.getSave(), message.getMessageUri());
                 }
@@ -246,7 +251,7 @@ public class Transaction {
 
                 Log.v("send_transaction", "inserted to uri: " + messageUri);
 
-                Cursor query = context.getContentResolver().query(messageUri, new String[] {"_id"}, null, null, null);
+                Cursor query = context.getContentResolver().query(messageUri, new String[]{"_id"}, null, null, null);
                 if (query != null) {
                     if (query.moveToFirst()) {
                         messageId = query.getInt(0);
@@ -359,12 +364,13 @@ public class Transaction {
                                         Toast.makeText(context, "Message could not be sent", Toast.LENGTH_LONG).show();
                                     }
                                 });
-                            } catch (Exception f) { }
+                            } catch (Exception f) {
+                                Log.e(TAG, "exception thrown", f);
+                            }
                         }
                     } else {
-                        Log.i(TAG + ".java - line 364", "mocked sending message\n// smsManager.sendMultipartTextMessage(address, null, parts, sPI, dPI);");
                         // not default app, so just fire it off right away for the hell of it
-                        // smsManager.sendMultipartTextMessage(addresses[i], null, parts, sPI, dPI);
+                        smsManager.sendMultipartTextMessage(addresses[i], null, parts, sPI, dPI);
                     }
                 }
             }
@@ -379,13 +385,13 @@ public class Transaction {
             public void run() {
                 try {
                     Thread.sleep(delay);
-                } catch (Exception e) { }
+                } catch (Exception e) {
+                }
 
                 if (checkIfMessageExistsAfterDelay(messageUri)) {
                     Log.v("send_transaction", "message sent after delay");
                     try {
-                        Log.i(TAG + ".java - line 385", "mocked sending message\n// smsManager.sendMultipartTextMessage(address, null, parts, sPI, dPI);");
-                        // smsManager.sendMultipartTextMessage(address, null, parts, sPI, dPI);
+                        smsManager.sendMultipartTextMessage(address, null, parts, sPI, dPI);
                     } catch (Exception e) {
                         Log.e(TAG, "exception thrown", e);
                     }
@@ -397,7 +403,7 @@ public class Transaction {
     }
 
     private boolean checkIfMessageExistsAfterDelay(Uri messageUti) {
-        Cursor query = context.getContentResolver().query(messageUti, new String[] {"_id"}, null, null, null);
+        Cursor query = context.getContentResolver().query(messageUti, new String[]{"_id"}, null, null, null);
         if (query != null && query.moveToFirst()) {
             query.close();
             return true;
@@ -498,7 +504,7 @@ public class Transaction {
 
                 };
 
-                context.registerReceiver(receiver, filter);
+                context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
             } catch (Throwable e) {
                 Log.e(TAG, "exception thrown", e);
             }
@@ -527,7 +533,7 @@ public class Transaction {
     @SuppressLint("Range")
     public static MessageInfo getBytes(Context context, boolean saveMessage, String fromAddress,
                                        String[] recipients, MMSPart[] parts, String subject)
-                throws MmsException {
+            throws MmsException {
         final SendReq sendRequest = new SendReq();
 
         // create send request addresses
@@ -631,7 +637,7 @@ public class Transaction {
         }
 
         try {
-            Cursor query = context.getContentResolver().query(info.location, new String[] {"thread_id"}, null, null, null);
+            Cursor query = context.getContentResolver().query(info.location, new String[]{"thread_id"}, null, null, null);
             if (query != null && query.moveToFirst()) {
                 info.token = query.getLong(query.getColumnIndex("thread_id"));
                 query.close();
@@ -720,9 +726,8 @@ public class Transaction {
 
             if (contentUri != null) {
                 Log.v(TAG, "sending mms through system");
-                Log.i(TAG + ".java - line 721", "mocked sending message\n// smsManager.sendMultimediaMessage(context, contentUri, null, configOverrides, pendingIntent);");
-                // SmsManagerFactory.createSmsManager(settings).sendMultimediaMessage(context,
-                //         contentUri, null, configOverrides, pendingIntent);
+                SmsManagerFactory.createSmsManager(settings).sendMultimediaMessage(context,
+                        contentUri, null, configOverrides, pendingIntent);
             } else {
                 Log.e(TAG, "Error writing sending Mms");
                 try {
@@ -785,7 +790,8 @@ public class Transaction {
             req.setDeliveryReport(PduHeaders.VALUE_NO);
             // Read report
             req.setReadReport(PduHeaders.VALUE_NO);
-        } catch (InvalidHeaderValueException e) {}
+        } catch (InvalidHeaderValueException e) {
+        }
 
         return req;
     }

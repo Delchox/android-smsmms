@@ -10,13 +10,6 @@
 
     <application>
 
-        <provider
-            android:name="com.klinker.android.send_message.MmsFileProvider"
-            android:authorities="com.klinker.android.send_message.sample.MmsFileProvider"
-            android:enabled="true"
-            android:exported="false"
-            android:grantUriPermissions="true" />
-
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />

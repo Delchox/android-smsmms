@@ -8,13 +8,10 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.database.Cursor;
-import android.database.sqlite.SqliteWrapper;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
-import android.provider.Telephony;
 import android.telephony.SmsManager;
 import android.text.TextUtils;
 
@@ -62,7 +59,7 @@ public class DownloadManager {
         final String fileName = "download." + Math.abs(new Random().nextLong()) + ".dat";
         File mDownloadFile = new File(context.getCacheDir(), fileName);
         Uri contentUri = (new Uri.Builder())
-                .authority(context.getPackageName() + ".MmsFileProvider")
+                .authority("com.microspacegames.app.callblock_scheduler.MmsFileLoaderProvider")
                 .path(fileName)
                 .scheme(ContentResolver.SCHEME_CONTENT)
                 .build();
@@ -73,7 +70,7 @@ public class DownloadManager {
         download.putExtra(MmsReceivedReceiver.EXTRA_URI, uri);
         download.putExtra(MmsReceivedReceiver.SUBSCRIPTION_ID, subscriptionId);
         final PendingIntent pendingIntent = PendingIntent.getBroadcast(
-                context, 0, download, PendingIntent.FLAG_CANCEL_CURRENT);
+                context, 0, download, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         final SmsManager smsManager = SmsManagerFactory.createSmsManager(subscriptionId);
 
@@ -91,7 +88,7 @@ public class DownloadManager {
     }
 
     private void grantUriPermission(Context context, Uri contentUri) {
-        context.grantUriPermission(context.getPackageName() + ".MmsFileProvider",
+        context.grantUriPermission(context.getPackageName() + ".MmsFileLoaderProvider",
                 contentUri,
                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     }
@@ -108,7 +105,7 @@ public class DownloadManager {
         public void onReceive(Context context, Intent intent) {
             context.unregisterReceiver(this);
 
-            PowerManager pm = (PowerManager)context.getSystemService(Context.POWER_SERVICE);
+            PowerManager pm = (PowerManager) context.getSystemService(Context.POWER_SERVICE);
             PowerManager.WakeLock wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "smsmms:download-mms-lock");
             wakeLock.acquire(60 * 1000);
 

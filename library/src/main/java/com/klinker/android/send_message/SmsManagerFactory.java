@@ -23,7 +23,8 @@ public class SmsManagerFactory {
 
             try {
                 if (Build.VERSION.SDK_INT >= 31) {
-                    Context.getSystemService(SmsManager.class).createForSubscriptionId(subscriptionId);
+                    throw new RuntimeException("Must implemented");
+//                  Context.getSystemService(SmsManager.class).createForSubscriptionId(subscriptionId);
                 } else {
                     manager = SmsManager.getSmsManagerForSubscriptionId(subscriptionId);
                 }
