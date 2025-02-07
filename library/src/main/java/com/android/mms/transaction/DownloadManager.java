@@ -59,7 +59,7 @@ public class DownloadManager {
         final String fileName = "download." + Math.abs(new Random().nextLong()) + ".dat";
         File mDownloadFile = new File(context.getCacheDir(), fileName);
         Uri contentUri = (new Uri.Builder())
-                .authority("com.microspacegames.app.callblock_scheduler.MmsFileLoaderProvider")
+                .authority(context.getPackageName() + ".provider.MmsFileProvider")
                 .path(fileName)
                 .scheme(ContentResolver.SCHEME_CONTENT)
                 .build();
@@ -88,7 +88,7 @@ public class DownloadManager {
     }
 
     private void grantUriPermission(Context context, Uri contentUri) {
-        context.grantUriPermission(context.getPackageName() + ".MmsFileLoaderProvider",
+        context.grantUriPermission(context.getPackageName() + ".provider.MmsFileProvider",
                 contentUri,
                 Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
     }
@@ -110,8 +110,9 @@ public class DownloadManager {
             wakeLock.acquire(60 * 1000);
 
             Intent newIntent = (Intent) intent.clone();
-            newIntent.setAction(MmsReceivedReceiver.MMS_RECEIVED);
-            BroadcastUtils.sendExplicitBroadcast(context, newIntent, MmsReceivedReceiver.MMS_RECEIVED);
+            String action = context.getPackageName() + ".MMS_RECEIVED";
+            newIntent.setAction(action);
+            BroadcastUtils.sendExplicitBroadcast(context, newIntent, action);
         }
     }
 

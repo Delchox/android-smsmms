@@ -59,7 +59,6 @@ import static com.google.android.mms.pdu_alt.PduHeaders.STATUS_RETRIEVED;
 public abstract class MmsReceivedReceiver extends BroadcastReceiver {
     private static final String TAG = "MmsReceivedReceiver";
 
-    public static final String MMS_RECEIVED = "com.klinker.android.messaging.MMS_RECEIVED";
     public static final String EXTRA_FILE_PATH = "file_path";
     public static final String EXTRA_LOCATION_URL = "location_url";
     public static final String EXTRA_TRIGGER_PUSH = "trigger_push";

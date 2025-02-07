@@ -503,8 +503,7 @@ public class Transaction {
                     }
 
                 };
-
-                context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
+                context.registerReceiver(receiver, filter);
             } catch (Throwable e) {
                 Log.e(TAG, "exception thrown", e);
             }
@@ -695,7 +694,7 @@ public class Transaction {
                     context, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
             Uri writerUri = (new Uri.Builder())
-                    .authority(context.getPackageName() + ".MmsFileProvider")
+                    .authority(context.getPackageName() + ".provider.MmsFileProvider")
                     .path(fileName)
                     .scheme(ContentResolver.SCHEME_CONTENT)
                     .build();
